@@ -23,3 +23,4 @@ search_results = driver.find_element(By.XPATH, '//*[@id="result-stats"]').text
 search_results = search_results.split()[1]
 search_results = int(search_results)
 
+# prueba
