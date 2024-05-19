@@ -1,0 +1,9 @@
+# python gitignore
+
+*.html
+*.json
+*.lock
+*.log
+
+data/
+reports/
