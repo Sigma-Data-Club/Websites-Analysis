@@ -36,7 +36,6 @@ https://www.drf.com/
 https://www.si.com/
 https://www.bbc.com/sport
 https://www.runnersworld.com/
-https://www.worldtaekwondo.org/
 https://www.athleticsweekly.com/
 https://as.com/
 https://www.sportcal.com/
@@ -52,7 +51,6 @@ https://www.nhl.com/
 https://www.eurosport.com/
 https://www.paralympic.org/
 https://www.sportsnet.ca/
-https://www.fivb.com/
 https://www.gymnastics.sport/
 https://www.fei.org/
 https://www.motorsport.com/
@@ -77,7 +75,6 @@ https://www.tennischannel.com/
 https://www.fina.org/
 https://www.swimmingworldmagazine.com/
 https://www.sportbusiness.com/
-https://www.businesswire.com/portal/site/home/
 https://www.sport.es/es/
 https://soccerex.com/
 https://www.worldathletics.org/
