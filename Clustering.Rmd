@@ -1,0 +1,258 @@
+---
+title: "Clustering"
+author: "Sigma Data Club"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(corrplot)
+library(grid)
+library(gridExtra)
+library(knitr)
+library(cluster)
+library(FactoMineR)
+library(factoextra)
+library(NbClust)
+library(clValid)
+```
+
+# Importing data
+
+```{r}
+data <- read.csv("final_dataset.csv")
+head(data)
+```
+
+# EDA
+
+We observe that the Gifs column is completely empty. We will remove this column from the dataset.
+
+```{r}
+data <- data[, setdiff(names(data), "Gifs")]
+# set website as rownames
+rownames(data) <- data$Website
+```
+
+Moreover, all the websites that contained missing values were removed earlier in "scrapper.ipynb". Now, we will check for outliers in the dataset.
+
+```{r}
+# histogram for each column
+for (i in 1:ncol(data)) {
+  if (is.numeric(data[,i])) {
+    hist(data[,i], main=names(data)[i])
+  }
+}
+
+numeric_variables <- data[, sapply(data, is.numeric)]
+corr <- cor(numeric_variables)
+corrplot(corr)
+```
+
+More details in Notion
+
+# Clustering
+
+```{r}
+data2 <- data[, sapply(data, is.numeric)]
+data3 <- scale(data2)
+set.seed(100)
+myN = c(20, 35, 50, 65)  # m
+myhopkins = NULL
+myseed = sample(1:1000, 10)
+for (i in myN) {
+  for (j in myseed) {
+    tmp = get_clust_tendency(data = data3, n = i, graph = FALSE, seed = j)
+    myhopkins = c(myhopkins, tmp$hopkins_stat)
+  }
+}
+summary(myhopkins)
+```
+
+Hopkins coefficient is high, which means that the data is suitable for clustering.
+
+```{r}
+
+mydist <- dist(data3, method = "euclidean")
+fviz_dist(mydist, show_labels = TRUE, lab_size = 0.3,
+          gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+```
+
+```{r}
+p1 = fviz_nbclust(x = data3, FUNcluster = hcut, method = "silhouette", 
+                  hc_method = "ward.D2", k.max = 10, verbose = FALSE, 
+                  hc_metric = "euclidean") + labs(title = "Num. optimo clusters")
+p2 = fviz_nbclust(x = data3, FUNcluster = hcut, method = "wss", 
+                  hc_method = "ward.D2", k.max = 10, verbose = FALSE, 
+                  hc_metric = "euclidean") + labs(title = "Num. optimo clusters")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+
+Regarding the silhouette method, the optimal number of clusters is 2. However, the intra-cluster variance is still high. 3 clusters is likely to be a better choice as Silhouette coefficient does not decrease to much while the intra-cluster variance is reduced, plus, the heatmap shows that the data could be separated in 3 clusters
+
+
+
+```{r}
+# set column website as rownames
+rownames(data) <- data$Website
+
+clust1 <- hclust(mydist, method="ward.D2")
+grupos1 <- cutree(clust1, k=3)
+table(grupos1)
+fviz_dend(clust1, k = 3,
+          cex = 0.5, color_labels_by_k = TRUE,
+          rect = TRUE) # dibujar rectángulos
+```
+
+```{r}
+fviz_cluster(object = list(data=data3, cluster=grupos1), stand = FALSE,
+             ellipse.type = "convex", geom = "point", show.clust.cent = FALSE,
+             labelsize = 8)  +
+  labs(title = "Modelo jerarquico + Proyeccion PCA",
+       subtitle = "Dist euclidea, Metodo Ward, K=3") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+fviz_cluster(object = list(data=data3, cluster=grupos1), stand = FALSE,
+             ellipse.type = "convex", geom = "point", show.clust.cent = FALSE,
+             labelsize = 8, axes=2:3)  +
+  labs(title = "Modelo jerarquico + Proyeccion PCA",
+       subtitle = "Dist euclidea, Metodo Ward, K=3") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+% Drop the observation of the third cluster
+
+```{r}
+data4 <- data3[grupos1 != 3,]
+outlier <- data3[grupos1 == 3,]
+outlier
+```
+
+```{r}
+mydist <- dist(data4, method = "euclidean")
+fviz_dist(mydist, show_labels = TRUE, lab_size = 0.3,
+          gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
+
+```{r}
+p1 = fviz_nbclust(x = data4, FUNcluster = hcut, method = "silhouette", 
+                  hc_method = "ward.D2", k.max = 10, verbose = FALSE, 
+                  hc_metric = "euclidean") + labs(title = "Num. optimo clusters")
+p2 = fviz_nbclust(x = data4, FUNcluster = hcut, method = "wss", 
+                  hc_method = "ward.D2", k.max = 10, verbose = FALSE, 
+                  hc_metric = "euclidean") + labs(title = "Num. optimo clusters")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+The number of clusters is still 3
+
+```{r}
+clust2 <- hclust(mydist, method="ward.D2")
+grupos2 <- cutree(clust2, k=3)
+table(grupos2)
+fviz_dend(clust2, k = 3,
+          cex = 0.5, color_labels_by_k = TRUE,
+          rect = TRUE) # dibujar rectángulos
+```
+
+```{r}
+fviz_cluster(object = list(data=data4, cluster=grupos2), stand = FALSE,
+             ellipse.type = "convex", geom = "point", show.clust.cent = FALSE,
+             labelsize = 8)  +
+  labs(title = "Modelo jerarquico + Proyeccion PCA",
+       subtitle = "Dist euclidea, Metodo Ward, K=3") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+
+```{r}
+par(mar = c(4.5,3,2,1))
+n_clusters <- 3
+mediasCluster <- aggregate(data4, by = list("cluster" = grupos2), mean)[,-1]
+rownames(mediasCluster) = paste0("c",1:n_clusters)
+
+matplot(t(mediasCluster), type = "l", col = rainbow(n_clusters), ylab = "", xlab = "", lwd = 2,
+        lty = 1, main = "Perfil medio de los clusters", xaxt = "n", cex.axis = 0.7, cex.main = 0.8)
+axis(side = 1, at = 1:ncol(data4),
+     labels = colnames(data4), las = 2, cex.axis = 0.7)
+legend("topleft", as.character(1:n_clusters), col = rainbow(n_clusters),
+       lwd = 2, ncol = 3, bty = "n", cex = 0.7)
+```
+
+```{r}
+p1 = fviz_nbclust(x = data4, FUNcluster = kmeans, method = "silhouette", 
+             k.max = 10, verbose = FALSE) +
+  labs(title = "K-means")
+p2 = fviz_nbclust(x = data4, FUNcluster = kmeans, method = "wss", 
+             k.max = 10, verbose = FALSE) +
+  labs(title = "K-means")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+```{r}
+res.nbclust <- NbClust(data = data4, diss = mydist, distance = NULL, 
+                        min.nc = 2, max.nc = 7, 
+                        method = "kmeans", index ="all")
+```
+
+While Silhoutte suggests 4 clusters as a good choice, D index suggests 2 or 3 clusters. We will choose 4 clusters as it is the most common result.
+
+```{r}
+clust3 <- kmeans(data4, centers = 4, nstart = 20)
+table(clust3$cluster)
+
+p1 = fviz_cluster(object = list(data=data4, cluster=clust3$cluster), stand = FALSE,
+             ellipse.type = "convex", geom = "point", show.clust.cent = FALSE,
+             labelsize = 8)  +
+  labs(title = "K-MEDIAS + Proyeccion PCA",
+       subtitle = "Dist euclidea, K=4") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+p2 = fviz_cluster(object = list(data=data4, cluster=clust3$cluster), stand = FALSE,
+             ellipse.type = "convex", geom = "point", show.clust.cent = FALSE,
+             labelsize = 8, axes = 3:4)  +
+  labs(title = "K-MEDIAS + Proyeccion PCA",
+       subtitle = "Dist euclidea, K=4") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+grid.arrange(p1, p2, nrow = 1)
+```
+
+```{r}
+par(mfrow = c(1,2))
+plot(silhouette(grupos2, mydist), col=rainbow(3), border=NA, main = "WARD")
+plot(silhouette(clust3$cluster, mydist), col=rainbow(4), border=NA, main = "K-MEDIAS")
+```
+
+Ward method is performing similarly to K-means, but K-means is is slightly more complicated to interpret. We will choose Ward method.
+
+
+Now, we are going to create a cross tabulation to see if clusters are related with MENA region.
+
+```{r}
+data <- data[grupos1 != 3,]
+data4$MENA <- data$MENA
+data4$cluster <- grupos2
+data4$cluster <- as.factor(data4$cluster)
+table(data4$cluster, data4$MENA)
+
+```
+
+5 out of 6 websites in cluster 1 are from MENA region, while 1 out of 6 websites in cluster 2
+This means that 5 out of 6 websites have values around the average, whilst 1 website has values that are significantly greater from the average regarding performance variables, which means that it is slower than the average.
+
+Let's perform an independent chi-squared test to see if the difference is significant.
+
+```{r}
+chisq.test(table(data4$cluster, data4$MENA))
+```
+
+The p-value is greater than 0.05, which means that the difference is not significant. This means that there not exists dependence between the clusters and the belonging MENA region.
